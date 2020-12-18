@@ -1,5 +1,6 @@
 import os
-from setuptools import find_packages, setup
+from setuptools import find_packages, setup, Extension
+from numpy.distutils.misc_util import get_numpy_include_dirs
 
 NAME = "gpstardist"
 DESCRIPTION = "Gunpowder node for stardist computation"
@@ -17,6 +18,7 @@ REQUIRED = [
 ]
 
 EXTRAS = {
+    'examples': ['raster_geometry']
 }
 
 DEPENDENCY_LINKS = [
@@ -30,6 +32,14 @@ with open(os.path.join(here, "ACKNOWLEDGMENTS"), "r") as f:
     LONG_DESCRIPTION += "\n\n"
     LONG_DESCRIPTION += f.read()
 
+
+EXTENSION = Extension(
+                'gpstardist.lib.stardist3d_custom',
+                sources=['gpstardist/lib/stardist3d_custom.cpp', 'gpstardist/lib/stardist3d_custom_impl.cpp'] ,
+                extra_compile_args = ['-std=c++11'],
+                include_dirs=get_numpy_include_dirs(),
+            )
+
 setup(
     name=NAME,
     version=VERSION,
@@ -40,7 +50,7 @@ setup(
     python_requires=REQUIRES_PYTHON,
     url=URL,
     packages=find_packages(),
-    ext_modules=[],
+    ext_modules=[EXTENSION,],
     entry_points={},
     install_requires=REQUIRED,
     extras_require=EXTRAS,

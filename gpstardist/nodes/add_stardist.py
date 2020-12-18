@@ -1,5 +1,6 @@
 import logging
 import stardist
+from gpstardist.stardist_custom import star_dist3d_max
 import gunpowder as gp
 import numpy as np
 
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 class AddStarDist3D(gp.BatchFilter):
-    def __init__(self, label_key, stardist_key, rays=None, mode="cpp", grid=(1, 1, 1), anisotropy=None,
+    def __init__(self, label_key, stardist_key, rays=None, max_dist=None, mode="cpp", grid=(1, 1, 1), anisotropy=None,
                  **kwargs):
         if rays is None:
             if 'rays_json' in kwargs:
@@ -35,6 +36,7 @@ class AddStarDist3D(gp.BatchFilter):
             self.rays = rays
         self.n_rays = len(self.rays)
         self.rays_json = self.rays.to_json()
+        self.max_dist = max_dist
         self.sd_mode = mode
         self.grid = stardist.utils._normalize_grid(grid, 3)
         self.anisotropy = anisotropy if anisotropy is None else tuple(anisotropy)
@@ -71,7 +73,10 @@ class AddStarDist3D(gp.BatchFilter):
     def process(self, batch, request):
         # compute stardists on label data
         data = batch.arrays[self.label_key].data
-        tmp = stardist.star_dist3D(data, self.rays, mode=self.sd_mode)
+        if self.max_dist is None:
+            tmp = stardist.star_dist3D(data, self.rays, mode=self.sd_mode)
+        else:
+            tmp = star_dist3d_max(data, self.rays, self.max_dist, mode=self.sd_mode)
         tmp = tmp[self.ss_grid]
         dist = np.moveaxis(tmp, -1, 0) # gp expects channel axis in front
 
