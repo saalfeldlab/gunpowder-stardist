@@ -1,1 +1,1 @@
-from .stardist3d import star_dist3d_max
+from .stardist3d import star_dist3d_custom

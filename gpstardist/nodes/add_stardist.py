@@ -1,6 +1,6 @@
 import logging
 import stardist
-from gpstardist.stardist_custom import star_dist3d_max
+from gpstardist.stardist_custom import star_dist3d_custom
 import gunpowder as gp
 import numpy as np
 
@@ -21,34 +21,23 @@ logger = logging.getLogger(__name__)
 
 
 class AddStarDist3D(gp.BatchFilter):
-    def __init__(self, label_key, stardist_key, rays=None, max_dist=None, mode="cpp", grid=(1, 1, 1), anisotropy=None,
-                 **kwargs):
-        if rays is None:
-            if 'rays_json' in kwargs:
-                self.rays = stardist.rays_from_json(kwargs['rays_json'])
-            elif 'n_rays' in kwargs:
-                self.rays = stardist.Rays_GoldenSpiral(kwargs["n_rays"])
-            else:
-                self.rays = stardist.Rays_GoldenSpiral(96)
-        elif np.isscalar(rays):
-            self.rays = stardist.Rays_GoldenSpiral(rays)
-        else:
-            self.rays = rays
-        self.n_rays = len(self.rays)
-        self.rays_json = self.rays.to_json()
+    def __init__(self, label_key, stardist_key, rays=None, unlabeled_id=None, max_dist=None, mode="cpp",
+                 grid=(1, 1, 1), anisotropy=None):
         self.max_dist = max_dist
         self.sd_mode = mode
         self.grid = stardist.utils._normalize_grid(grid, 3)
         self.anisotropy = anisotropy if anisotropy is None else tuple(anisotropy)
         self.ss_grid = tuple(slice(0, None, g) for g in grid)
-        if 'anisotropy' in self.rays_json['kwargs']:
-            if self.rays_json['kwargs']['anisotropy'] is None and self.anisotropy is not None:
-                self.rays_json['kwargs']['anisotropy'] = self.anisotropy
-                print("Changing 'anisotropy' of rays to %s" % str(anisotropy))
-            elif self.rays_json['kwargs']['anisotropy'] != self.anisotropy:
-                logger.warning("Mismatch of 'anisotropy' of rays and 'anisotropy'.")
+        if rays is None:
+            self.rays = stardist.Rays_GoldenSpiral(96, self.anisotropy)
+        elif np.isscalar(rays):
+            self.rays = stardist.Rays_GoldenSpiral(rays, self.anisotropy)
+        else:
+            self.rays = rays
+        self.n_rays = len(self.rays)
         self.label_key = label_key
         self.stardist_key = stardist_key
+        self.unlabeled_id = unlabeled_id
 
     def _updated_spec(self, ref_spec):
         spec = ref_spec.copy()
@@ -73,11 +62,10 @@ class AddStarDist3D(gp.BatchFilter):
     def process(self, batch, request):
         # compute stardists on label data
         data = batch.arrays[self.label_key].data
-        if self.max_dist is None:
-            tmp = stardist.star_dist3D(data, self.rays, mode=self.sd_mode)
-        else:
-            tmp = star_dist3d_max(data, self.rays, self.max_dist, mode=self.sd_mode)
-        tmp = tmp[self.ss_grid]
+        tmp = star_dist3d_custom(data, self.rays, self.unlabeled_id, self.max_dist, grid=self.grid,
+                                 voxel_size=self.anisotropy, mode=self.sd_mode)
+        # seems unnecessary when using grid in function call above
+        # tmp = tmp[self.ss_grid]
         dist = np.moveaxis(tmp, -1, 0) # gp expects channel axis in front
 
         # generate spec for new batch based on what's coming in for labels
