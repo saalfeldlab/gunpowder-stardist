@@ -6,8 +6,10 @@ import argparse
 
 parser = argparse.ArgumentParser("Simple Stardist Generator for CREMI data")
 parser.add_argument("--directory", help="Directory to store data in.", type=str, default=".")
+parser.add_argument("--max_dist", help="Maximum distance for stardist computation", type=float, default=None)
 args = parser.parse_args()
 directory = args.directory
+max_dist = args.max_dist
 
 # download some test data
 url = "https://cremi.org/static/data/sample_A_20160501.hdf"
@@ -15,7 +17,9 @@ urllib.request.urlretrieve(url, os.path.join(directory, 'sample_A.hdf'))
 
 # configure where to store results
 result_file = "sample_A.n5"
-ds_name = "stardists_downsampled"
+ds_name = "neuron_ids_stardists_downsampled"
+if max_dist is not None:
+    ds_name += "_max{0:}".format(max_dist)
 
 # declare arrays to use
 raw = gp.ArrayKey("RAW")
@@ -24,10 +28,11 @@ stardists = gp.ArrayKey("STARDIST")
 
 # prepare requests for scanning (i.e. chunks) and overall
 scan_request = gp.BatchRequest()
-scan_request[stardists] = gp.Roi(gp.Coordinate((0, 0, 0)), gp.Coordinate((40, 100, 100))*gp.Coordinate((40, 16, 16)))
+scan_request[stardists] = gp.Roi(gp.Coordinate((0, 0, 0)), gp.Coordinate((40, 100, 100))*gp.Coordinate((40, 8, 8)))
+voxel_size = gp.Coordinate((40, 4, 4))
 request = gp.BatchRequest()  # empty request will loop over whole area with scanning
-
-source = gp.Hdf5Source(
+request[stardists] = gp.Roi(gp.Coordinate((40, 800, 800))*gp.Coordinate((40, 8, 8)),
+                            gp.Coordinate((40, 100, 100))*gp.Coordinate((40, 8, 8))*gp.Coordinate((2, 2, 2)))
     os.path.join(directory, "sample_A.hdf"),
     datasets={
         labels: "volumes/labels/neuron_ids"  # reads resolution from file
@@ -39,7 +44,9 @@ stardist_gen = gpstardist.AddStarDist3D(
     stardists,
     rays=96,
     anisotropy=(40, 4, 4),
-    grid=(1, 2, 2)
+    grid=(1, 2, 2),
+    unlabeled_id=int(np.array(-3).astype(np.uint64)),
+    max_dist=max_dist,
 )
 
 writer = gp.ZarrWrite(

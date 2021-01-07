@@ -10,13 +10,15 @@ import zarr
 
 parser = argparse.ArgumentParser("Simple Stardist Generator for a sphere")
 parser.add_argument("--directory", help="Directory to store data in.", type=str, default=".")
-parser.add_argument("--max_dist", help="Maximum distance for stardist computation", type=float, default=40.)
+parser.add_argument("--max_dist", help="Maximum distance for stardist computation", type=float, default=None)
 args = parser.parse_args()
 directory = args.directory
 max_dist = args.max_dist
 
 # generate a dataset with a binary sphere
 sphere = raster_geometry.sphere(200, 70).astype(np.uint64) # image size: 200, radius: 70
+sphere2 = raster_geometry.sphere(200,50).astype(np.uint64)
+sphere = (sphere + sphere2 - 1).astype(np.uint64)
 f = zarr.open(os.path.join(directory, "sphere.n5"), mode="a")
 f.create_dataset(name="sphere",
                  shape=sphere.shape,
@@ -52,6 +54,7 @@ stardist_gen = gpstardist.AddStarDist3D(
     anisotropy=(1, 1, 1),
     grid=(1, 1, 1),
     max_dist=max_dist,
+    unlabeled_id=-1
 )
 
 # write result to a new dataset
