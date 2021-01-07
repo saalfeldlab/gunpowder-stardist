@@ -18,7 +18,7 @@ REQUIRED = [
 ]
 
 EXTRAS = {
-    'examples': ['raster_geometry']
+    'examples': ['raster_geometry', 'zarr']
 }
 
 DEPENDENCY_LINKS = [
