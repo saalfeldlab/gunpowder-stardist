@@ -1,4 +1,5 @@
 import gunpowder as gp
+import numpy as np
 import gpstardist
 import urllib.request
 import os
@@ -31,8 +32,9 @@ scan_request = gp.BatchRequest()
 scan_request[stardists] = gp.Roi(gp.Coordinate((0, 0, 0)), gp.Coordinate((40, 100, 100))*gp.Coordinate((40, 8, 8)))
 voxel_size = gp.Coordinate((40, 4, 4))
 request = gp.BatchRequest()  # empty request will loop over whole area with scanning
-request[stardists] = gp.Roi(gp.Coordinate((40, 800, 800))*gp.Coordinate((40, 8, 8)),
+request[stardists] = gp.Roi(gp.Coordinate((40, 200, 200))*gp.Coordinate((40, 8, 8)),
                             gp.Coordinate((40, 100, 100))*gp.Coordinate((40, 8, 8))*gp.Coordinate((2, 2, 2)))
+source = gp.Hdf5Source(
     os.path.join(directory, "sample_A.hdf"),
     datasets={
         labels: "volumes/labels/neuron_ids"  # reads resolution from file
