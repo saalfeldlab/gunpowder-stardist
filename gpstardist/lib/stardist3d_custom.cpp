@@ -18,7 +18,7 @@ static PyObject* c_star_dist3d_uint64(PyObject *self, PyObject *args) {
   PyArrayObject *pdy = NULL;
   PyArrayObject *pdz = NULL;
   PyArrayObject *outside_value = NULL;
-
+  float invalid_value;
 
   int n_rays;
   int grid_x, grid_y, grid_z;
@@ -27,13 +27,14 @@ static PyObject* c_star_dist3d_uint64(PyObject *self, PyObject *args) {
   int max;
   int out;
 
-  if (!PyArg_ParseTuple(args, "O!O!O!O!O!ifiiiiifff",
+  if (!PyArg_ParseTuple(args, "O!O!O!O!O!iffiiiiifff",
                         &PyArray_Type, &src,
                         &PyArray_Type, &pdz,
                         &PyArray_Type, &pdy,
                         &PyArray_Type, &pdx,
                         &PyArray_Type, &outside_value,
                         &n_rays,
+                        &invalid_value,
                         &max_dist,
                         &max,
                         &out,
@@ -74,7 +75,7 @@ static PyObject* c_star_dist3d_uint64(PyObject *self, PyObject *args) {
         // outside pixel
         } else if (out != 0 && value == out_value) {
           for (int n = 0; n < n_rays; n++) {
-            *(float *)PyArray_GETPTR4(dst,i,j,k,n) = -1;
+            *(float *)PyArray_GETPTR4(dst,i,j,k,n) = invalid_value;
           }
         // foreground pixel
         } else {
@@ -103,12 +104,12 @@ static PyObject* c_star_dist3d_uint64(PyObject *self, PyObject *args) {
               } else if (ii < 0 || ii >= dims[0] ||
                   jj < 0 || jj >= dims[1] ||
                   kk < 0 || kk >= dims[2] )  {
-                *(float *)PyArray_GETPTR4(dst,i,j,k,n) = -1;
+                *(float *)PyArray_GETPTR4(dst,i,j,k,n) = invalid_value;
                 break;
               } else {
                 const uint64_t compare_value =*(uint64_t *)PyArray_GETPTR3(src,ii,jj,kk);
                 if (out != 0 && compare_value == out_value) {
-                  *(float *)PyArray_GETPTR4(dst,i,j,k,n) = -1;
+                  *(float *)PyArray_GETPTR4(dst,i,j,k,n) = invalid_value;
                   break;
                 } else if (value != compare_value) {
                   const float dist = sqrt(dist2);

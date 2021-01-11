@@ -54,7 +54,8 @@ stardist_gen = gpstardist.AddStarDist3D(
     anisotropy=(1, 1, 1),
     grid=(1, 1, 1),
     max_dist=max_dist,
-    unlabeled_id=-1
+    unlabeled_id=-1,
+    invalid_value=-3
 )
 
 # write result to a new dataset

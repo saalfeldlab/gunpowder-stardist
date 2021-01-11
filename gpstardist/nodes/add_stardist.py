@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 
 
 class AddStarDist3D(gp.BatchFilter):
-    def __init__(self, label_key, stardist_key, rays=None, unlabeled_id=None, max_dist=None, mode="cpp",
-                 grid=(1, 1, 1), anisotropy=None):
+    def __init__(self, label_key, stardist_key, rays=None, unlabeled_id=None, invalid_value=-1, max_dist=None,
+                 mode="cpp", grid=(1, 1, 1), anisotropy=None):
         self.max_dist = max_dist
         self.sd_mode = mode
         self.grid = stardist.utils._normalize_grid(grid, 3)
@@ -38,6 +38,7 @@ class AddStarDist3D(gp.BatchFilter):
         self.label_key = label_key
         self.stardist_key = stardist_key
         self.unlabeled_id = unlabeled_id
+        self.invalid_value = invalid_value
 
     def _updated_spec(self, ref_spec):
         spec = ref_spec.copy()
@@ -62,8 +63,9 @@ class AddStarDist3D(gp.BatchFilter):
     def process(self, batch, request):
         # compute stardists on label data
         data = batch.arrays[self.label_key].data
-        tmp = star_dist3d_custom(data, self.rays, self.unlabeled_id, self.max_dist, grid=self.grid,
-                                 voxel_size=self.anisotropy, mode=self.sd_mode)
+        tmp = star_dist3d_custom(data, self.rays, self.unlabeled_id, self.max_dist,
+                                 invalid_value=self.invalid_value, grid=self.grid, voxel_size=self.anisotropy,
+                                 mode=self.sd_mode)
         # seems unnecessary when using grid in function call above
         # tmp = tmp[self.ss_grid]
         dist = np.moveaxis(tmp, -1, 0) # gp expects channel axis in front

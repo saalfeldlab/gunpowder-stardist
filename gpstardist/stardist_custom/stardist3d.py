@@ -3,7 +3,7 @@ from stardist.utils import _normalize_grid
 from ..lib.stardist3d_custom import c_star_dist3d_uint64
 
 
-def _cpp_star_dist3d(lbl, rays, unlabeled_id, max_dist, grid=(1, 1, 1), voxel_size=(1, 1, 1)):
+def _cpp_star_dist3d(lbl, rays, unlabeled_id, max_dist, invalid_value=-1, grid=(1, 1, 1), voxel_size=(1, 1, 1)):
     dz, dy, dx = rays.vertices.T
     grid = _normalize_grid(grid,3)
     if lbl.dtype == np.uint64:
@@ -19,18 +19,21 @@ def _cpp_star_dist3d(lbl, rays, unlabeled_id, max_dist, grid=(1, 1, 1), voxel_si
             max = True
         return c_star_dist3d_uint64(lbl, dz.astype(np.float32, copy=False), dy.astype(np.float32, copy=False),
                                     dx.astype(np.float32, copy=False), np.array(unlabeled_id).astype(lbl.dtype),
-                                    int(len(rays)), float(max_dist), int(max), int(out), int(grid[0]), int(grid[1]),
-                                    int(grid[2]), float(voxel_size[0]), float(voxel_size[1]), float(voxel_size[2]))
+                                    int(len(rays)), float(invalid_value), float(max_dist), int(max), int(out),
+                                    int(grid[0]), int(grid[1]), int(grid[2]), float(voxel_size[0]),
+                                    float(voxel_size[1]), float(voxel_size[2]))
     else:
         raise NotImplementedError("Star Dist computation not implemented for arrays of type {0:}".format(lbl.dtype))
 
 
-def star_dist3d_custom(lbl, rays, unlabeled_id, max_dist, grid=(1, 1, 1), voxel_size=(1, 1, 1), mode='cpp'):
+def star_dist3d_custom(lbl, rays, unlabeled_id, max_dist, invalid_value=-1, grid=(1, 1, 1), voxel_size=(1, 1, 1),
+                       mode='cpp'):
     """lbl assumbed to be a label image with integer values that encode object ids. id 0 denotes background."""
     if mode == 'python':
         raise(NotImplementedError("python version of star dist with max distance is not yet implemented"))
     elif mode == 'cpp':
-        return _cpp_star_dist3d(lbl, rays, unlabeled_id, max_dist, grid=grid, voxel_size=voxel_size)
+        return _cpp_star_dist3d(lbl, rays, unlabeled_id, max_dist, invalid_value=invalid_value, grid=grid,
+                                voxel_size=voxel_size)
     elif mode == 'opencl':
         raise(NotImplementedError("opencl version of star dist with max distance is not yet implemented"))
     else:
